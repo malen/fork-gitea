@@ -13,6 +13,7 @@
     "css-loader": "6.7.1",
     "dropzone": "6.0.0-beta.2",
     "easymde": "2.16.1",
+    "esbuild": "0.14.48",
     "esbuild-loader": "2.19.0",
     "escape-goat": "4.0.0",
     "fast-glob": "3.2.11",

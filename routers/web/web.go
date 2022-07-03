@@ -36,6 +36,7 @@ import (
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
+	"code.gitea.io/gitea/routers/web/task"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -1256,6 +1257,14 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
 		m.Get("/new", user.NewAvailable)
+	}, reqSignIn)
+	
+	// TODO: 馬　タスクを追加
+	m.Group("/task", func() {
+		m.Get("", func(ctx *context.Context) {
+			ctx.Redirect(setting.AppSubURL + "/task/minitask")
+		})
+		m.Get("/minitask", task.MiniTask)
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {
