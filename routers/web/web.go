@@ -1265,6 +1265,8 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Redirect(setting.AppSubURL + "/task/minitask")
 		})
 		m.Get("/minitask", task.MiniTask)
+		m.Get("/readtask", task.ReadTask)
+		m.Get("/createddl", task.CreateDDL)
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {
