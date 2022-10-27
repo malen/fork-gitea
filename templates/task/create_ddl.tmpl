@@ -1,0 +1,16 @@
+{{template "base/head" .}}
+<div class="page-content explore repositories">
+  {{template "task/navbar" .}}
+  <div class="ui container">
+    <form class="ui form ignore-dirty" style="max-width: 90%">
+      <div class="ui fluid action input">
+        <input name="file" value="{{.FilePath}}" placeholder="テーブル定義ファイルのフルパスを入力してください。" autofocus>
+        <button class="ui primary button">作成</button>
+      </div>
+    </form>
+    <pre>
+      {{.SqlDDL}}
+    </pre>
+  </div>
+</div>
+{{template "base/footer" .}}

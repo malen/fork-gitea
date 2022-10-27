@@ -1,0 +1,45 @@
+{{template "base/head" .}}
+<div class="page-content explore repositories">
+  {{template "task/navbar" .}}
+  <div class="ui container">
+    <a class='ui {{if eq .BtnType "1" }}yellow{{else}}teal{{end}} button' href="{{AppSubUrl}}/task/delivery?type=1">
+      今週納品予定(先週完了分)
+    </a>
+    <a class='ui {{if eq .BtnType "2" }}yellow{{else}}teal{{end}} button' href="{{AppSubUrl}}/task/delivery?type=2">
+      今週完了予定
+    </a>
+    <a class='ui {{if eq .BtnType "3" }}yellow{{else}}teal{{end}} button' href="{{AppSubUrl}}/task/delivery?type=3">
+      来週完了予定
+    </a>
+    <ul>
+      <div class="ui small label topic">内部設計</div>
+      {{range .WeekTask1}}
+      <li>
+        {{.Value}}
+        {{if or (eq $.BtnType "1") (eq $.BtnType "2")}}
+        (改版{{if .Check}}OK{{else}}NG{{end}})
+        {{end}}
+      </li>
+      {{end}}
+    </ul>
+    <ul>
+      <div class="ui small label topic">製造</div>
+      {{range .WeekTask2}}
+      <li>{{.}}</li>
+      {{end}}
+    </ul>
+    <ul>
+      <div class="ui small label topic">単体設計</div>
+      {{range $s := .WeekTask3}}
+      <li>{{$s}}</li>
+      {{end}}
+    </ul>
+    <ul>
+      <div class="ui small label topic">単体テスト</div>
+      {{range .WeekTask4}}
+      <li>{{.}}</li>
+      {{end}}
+    </ul>
+  </div>
+</div>
+{{template "base/footer" .}}

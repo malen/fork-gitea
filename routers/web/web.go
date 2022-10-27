@@ -1267,6 +1267,9 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/minitask", task.MiniTask)
 		m.Get("/readtask", task.ReadTask)
 		m.Get("/createddl", task.CreateDDL)
+		m.Get("/create_ddl", task.CreateDDLByFilePath)
+		m.Get("/generate_message", task.GenerateMessageJson)
+		m.Get("/delivery", task.Delivery)
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {

@@ -2,11 +2,128 @@
 <div class="page-content explore repositories">
   {{template "task/navbar" .}}
   <div class="ui container">
-    <div class="ui right">
-      <a class="ui primary tiny button" href="{{AppSubUrl}}/task/readtask">タスクファイルを読み込む</a>
-      <br>
-      <a class="ui primary tiny button" href="{{AppSubUrl}}/task/createddl">OracleのDDLを作成</a>
-    </div>
+    <a class="ui primary tiny button" href="{{AppSubUrl}}/task/readtask">タスクファイルを読み込む</a>
+    <a class="ui primary tiny button" href="{{AppSubUrl}}/task/createddl">OracleのDDLを作成</a>
+    <a class="ui primary tiny button" href="{{AppSubUrl}}/task/generate_message">メッセージ作成</a>
   </div>
 </div>
+<div class="task-list" data-tasks="{{.TaskDatas}}" style="padding: 0 20px 0 20px;">
+  <table id="tb1" class="ui celled table" style="width:100%">
+  </table>
+</div>
+
+<script>
+  // const tasks =
+  //   [{
+  //     'userId': '1',
+  //     'name': 'malen',
+  //     'sex': '1',
+  //     'age': '22',
+  //     'birth': '2022/12/01',
+  //   }, {
+  //     'userId': '2',
+  //     'name': 'aaaa',
+  //     'sex': '0',
+  //     'age': '11',
+  //     'birth': '2021/12/01',
+  //   }]
+  const tasks = $('.task-list').data('tasks')
+
+  const myTable = $('#tb1').dataTable(
+    {
+      'language': {
+        'decimal': '',
+        'emptyTable': 'データなし',
+        'info': '_START_ から _END_ まで、合計　_TOTAL_',
+        'infoEmpty': 'No data',
+        'infoFiltered': '_MAX_ からフィルターした',
+        'infoPostFix': '',
+        'thousands': '',
+        'lengthMenu': '頁サイズ　_MENU_',
+        'loadingRecords': 'ローディング中',
+        'processing': '処理中',
+        'search': 'search',
+        'zeroRecords': 'No data',
+        'paginate': {
+          'first': '先頭頁',
+          'previous': '前へ',
+          'next': '次へ',
+          'last': '末尾頁'
+        }
+      },
+      'scrollX': true,
+      'autoWidth': true,
+      'pageLength': 600,
+      'iDisplayLength': 600,
+      data: tasks,
+      columns: [
+        { title: '大区分', data: 'kbn', defaultContent: '' },
+        { title: '業務名', data: 'gyomu_kbn', defaultContent: '' },
+        { title: '機能ID', data: 'kino_id', defaultContent: '' },
+        { title: '機能名', data: 'kino_name', defaultContent: '', className: 'Editor' },
+        { title: 'フェーズ', data: 'phase', defaultContent: '' },
+        { title: '予定開始日', data: 'plan_start', defaultContent: '' },
+        { title: '予定終了日', data: 'plan_end', defaultContent: '' },
+        { title: '実績開始日', data: 'real_start', defaultContent: '' },
+        { title: '実績終了日', data: 'real_end', defaultContent: '' },
+        { title: '担当者', data: 'pic', defaultContent: '' },
+        { title: 'レ予定開始日', data: 'review_plan_start', defaultContent: '' },
+        { title: 'レ予定終了日', data: 'review_plan_end', defaultContent: '' },
+        { title: 'レ実績開始日', data: 'review_real_start', defaultContent: '' },
+        { title: 'レ実績終了日', data: 'review_real_end', defaultContent: '' },
+      ],
+      'columnDefs': [
+        {
+          'render' (data, type, row) {
+            return ["<a href=''  id='dialog_link'>删除</a>"].join('')
+          },
+          'targets': 8
+        }
+      ],
+      order: [[0, 'asc']]
+    })
+
+  $('#dialog-message').dialog({
+    autoOpen: false,
+    width: 400,
+    resizable: false,
+    modal: true,
+    title: '',
+    buttons: [{
+      html: '确认',
+      'class': 'btn btn_b',
+      click () {
+        const code = window.parent.$('#dialog-message').data('code')// 这里是获取传入的参数值
+        location.href = ''
+        $(this).dialog('close')
+      }
+    }, {
+      html: '取消',
+      'class': 'btn btn_o',
+      click () {
+        $(this).dialog('close')
+      }
+    }]
+  })
+
+  $('#table tbody').on('click', '#dialog_link', function () {
+    const data = myTable.row($(this).parents('tr')).data()// 这里是获取当前你点击的那行的数据
+    $('#dialog-message').data('code', data.code).dialog('open')// 然后传入对话框，打开对话框
+    return false
+  });
+</script>
+<style>
+  th,
+  td {
+    white-space: nowrap;
+  }
+</style>
+<div id="dialog-message" title="提示">
+  <p>
+    <span class="ui-icon ui-icon-circle-check" style="float:left; margin:0 7px 50px 0;"></span>
+    是否删除该条数据？
+  </p>
+</div>
+<!--https://blog.csdn.net/xuchen_wang/article/details/100662502-->
+<!-- https://blog.websandbag.com/entry/2020/01/15/203242-->
 {{template "base/footer" .}}

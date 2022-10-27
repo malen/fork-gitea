@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"os"
+	"encoding/json"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -48,18 +50,20 @@ func MiniTask(ctx *context.Context) {
 }
 
 type TaskInfo struct {
-    Kbn		  string        // 大区分 1：画面 2：API
-	GyomuKbn  string        // 業務名
-	KinoID    string        // 機能ID
-	KinoName  string        // 機能名
-	Phase     string        // 内部設計、製造、単体設計、単体実施
-	PlanStart string        // 予定開始日
-	PlanEnd   string        // 予定終了日
-	RealStart string        // 実績開始日
-	RealEnd   string        // 実績終了日
-	ReViewPlanStart string  // レビュー予定開始日
-	ReViewPlanEnd   string  // レビュー予定終了日
-	PIC       string        // 担当者
+    Kbn		  string `json:"kbn"`        // 大区分 1：画面 2：API
+	GyomuKbn  string `json:"gyomu_kbn"`        // 業務名
+	KinoID    string `json:"kino_id"`        // 機能ID
+	KinoName  string `json:"kino_name"`        // 機能名
+	Phase     string `json:"phase"`        // 内部設計、製造、単体設計、単体実施
+	PlanStart string `json:"plan_start"`        // 予定開始日
+	PlanEnd   string `json:"plan_end"`        // 予定終了日
+	RealStart string `json:"real_start"`        // 実績開始日
+	RealEnd   string `json:"real_end"`        // 実績終了日
+	ReViewPlanStart string `json:"review_plan_start"`  // レ予定開始日
+	ReViewPlanEnd   string `json:"review_plan_end"`  // レ予定終了日
+	ReViewRealStart string `json:"review_real_start"`  // レ実績開始日
+	ReViewRealEnd   string `json:"review_real_end"`  // レ実績終了日
+	PIC       string `json:"pic"`        // 担当者
 }
 
 // スケジュールからタスク情報を読み込む
@@ -157,9 +161,14 @@ func ReadTask(ctx *context.Context) {
 	}
 
 	//checkDBMetas()
-	ReadTask2(ctx)
+	m, _ := ReadTask2(ctx)
+	b, err := json.MarshalIndent(m, "", "  ") 
+	if err != nil {
+		fmt.Printf("json marshal failed. %v \n", err)
+	}
 
-
+	fmt.Printf(" xxxxxxxxxxx %d \n xxxx %s \n", len(m), b)
+	ctx.Data["TaskDatas"] = string(b)
 	//checkPageCount()
 	//fmt.Println("--------%s \n", convert())
 	ctx.Data["PageIsMiniTask"] = true
@@ -185,11 +194,11 @@ func ReadTask(ctx *context.Context) {
     // }
 }
 
-func ReadTask2(ctx *context.Context) {
+func ReadTask2(ctx *context.Context) ([]TaskInfo, []string)  {
 	f, err := excelize.OpenFile("D:/★FM-MAT/trunk/00_進捗管理/八丁堀内部管理用スケジュール.xlsx")
     if err != nil {
         fmt.Printf("open %s, error %v", "", err)
-        return
+        return nil, nil
     }
     defer func() {
         // Close the spreadsheet.
@@ -200,7 +209,7 @@ func ReadTask2(ctx *context.Context) {
 
 	rows, err := f.Rows("八丁堀内部スケジュール")
 	if err != nil {
-		return
+		return nil, nil
 	}
 
 	gyomuInfos, _ := ScanFD()
@@ -209,12 +218,19 @@ func ReadTask2(ctx *context.Context) {
 	var kinoId string
 	var isBreak bool
 	for rows.Next() {
-		row, _ := rows.Columns()
+		col, _ := rows.Columns()
+
+		fmt.Printf("xxxxxxxxxxxxxxx%v \n", col)
+		// データ有無をチェックする
+		if len(col) <= 2 || !isNum(col[1]) {
+			continue
+		}
+
 		isBreak = false
 		for _, gyomuInfo := range gyomuInfos {
 			for _, kino := range gyomuInfo.KinoData {
 				kinoId = ""
-				if kino.Name == convert2(row, 3, false) {
+				if kino.Name == convert2(col, 3, false) {
 					kinoId = kino.ID
 					isBreak = true
 					break
@@ -227,18 +243,20 @@ func ReadTask2(ctx *context.Context) {
 		}
 
 		tskInfo := TaskInfo{
-			Kbn: convert2(row, 2, false),
-			GyomuKbn: convert2(row, 0, false),
+			Kbn: convert2(col, 2, false),
+			GyomuKbn: convert2(col, 0, false),
 			KinoID: kinoId,
-			KinoName: convert2(row, 3, false),
-			Phase: convert2(row, 4, false),
-			PlanStart: convert2(row, 5, true),
-			PlanEnd: convert2(row, 6, true),
-			RealStart: convert2(row, 7, true),
-			RealEnd: convert2(row, 8, true),
-			ReViewPlanStart: convert2(row, 13, true),
-			ReViewPlanEnd: convert2(row, 14, true),
-			PIC: convert2(row, 9, false),
+			KinoName: convert2(col, 3, false),
+			Phase: convert2(col, 4, false),
+			PlanStart: convert2(col, 5, true),
+			PlanEnd: convert2(col, 6, true),
+			RealStart: convert2(col, 7, true),
+			RealEnd: convert2(col, 8, true),
+			ReViewPlanStart: convert2(col, 13, true),
+			ReViewPlanEnd: convert2(col, 14, true),
+			ReViewRealStart: convert2(col, 15, true),
+			ReViewRealEnd: convert2(col, 16, true),
+			PIC: convert2(col, 9, false),
 		}
 
 		taskInfos = append(taskInfos, tskInfo)
@@ -249,6 +267,11 @@ func ReadTask2(ctx *context.Context) {
 	tantai, _ := getAllFiles("D:/★FM-MAT/trunk/02_成果物/02_単体設計")
 	selfchk, _ := getAllFiles("D:/★FM-MAT/trunk/02_成果物/05_セルフチェックリスト")
 	review, _ := getAllFiles("D:/★FM-MAT/trunk/02_成果物/99_レビュー記録")
+
+	// TODO: レビュー記録表名称変更
+	// for _, reviewFile := range review {
+	// 	renameFile(reviewFile)
+	// }
 
 	fmt.Printf("内部設計%d, 単体%d, セルフチェックリスト%d, レビュー記録表%d\n", len(xiangxi), len(tantai), len(selfchk), len(review))
 	for _, taskInfo := range taskInfos {
@@ -281,12 +304,14 @@ func ReadTask2(ctx *context.Context) {
 	var weekTask2 []string  // 製造
 	var weekTask3 []string  // 単体設計
 	var weekTask4 []string  // 単体実施
+	// -1：前週、0：当週、1：来週
+	start, end := WeekIntervalTime(1)
+	fmt.Printf("---------------------------------------------------------\n")
+	fmt.Printf("※報告期間：%s～%s\n", start.Format("2006/01/02"), end.Format("2006/01/02"))
 	for _, taskInfo := range taskInfos {									
 		if len(taskInfo.PlanEnd) > 0 {
 			t, _ := time.Parse("2006/01/02", taskInfo.PlanEnd)
-			start, end := WeekIntervalTime(0)
-			
-			//fmt.Println(start, t, end, taskInfo.PlanEnd)
+
 			if t.Before(start) || t.After(end) {
 				continue
 			}
@@ -324,6 +349,24 @@ func ReadTask2(ctx *context.Context) {
 	build.WriteString("\n単体実施\n")
 	build.WriteString(strings.Join(weekTask4, "\n"))
 	fmt.Println(build.String())
+
+	return taskInfos, []string{
+		"大区分",
+		"業務名",
+		"機能ID",
+		"機能名",
+		"フェーズ",
+		"予定開始日",
+		"予定終了日",
+		"実績開始日",
+		"実績終了日",
+		"担当者",
+		"レ予定開始日",
+		"レ予定終了日",
+		"レ実績開始日",
+		"レ実績終了日",
+	}
+
 }
 
 func WeekIntervalTime(week int) (startTime, endTime time.Time) {
@@ -538,7 +581,7 @@ func checkPRID(files []string, task TaskInfo) {
 	}
 
 	if len(path) <= 0 {
-		fmt.Printf("×　%s\n", expectFileName)
+		fmt.Printf("×　担当者:%s ファイル名：%s\n", task.PIC, expectFileName)
 		return
 	}
 
@@ -568,7 +611,7 @@ func checkAPID(files []string, task TaskInfo) {
 	}
 
 	if len(path) <= 0 {
-		fmt.Printf("×　%s\n", expectFileName)
+		fmt.Printf("×　担当者:%s ファイル名：%s\n", task.PIC, expectFileName)
 		return
 	}
 
@@ -599,7 +642,7 @@ func checkAPIID(files []string, task TaskInfo) {
 	}
 
 	if len(path) <= 0 {
-		fmt.Printf("×　%s\n", expectFileName)
+		fmt.Printf("×　担当者:%s ファイル名：%s\n", task.PIC, expectFileName)
 		return
 	}
 
@@ -620,13 +663,17 @@ func checkAPIID(files []string, task TaskInfo) {
 func checkReviewResult(files []string, task TaskInfo) {
 	var path string
 
+	if len(task.ReViewRealEnd) == 0 || task.ReViewRealEnd != "1899/12/30" {
+		return
+	}
+
 	var pattern string
 	if task.Phase =="詳細設計" || task.Phase =="内部設計" {
 		if task.Kbn == "API" {
-			pattern = fmt.Sprintf("レビュー記録表(内部設計)_20220000_API_(%s)_%s.xlsm", task.KinoID, task.KinoName)
+			pattern = fmt.Sprintf("レビュー記録表(内部設計)_20220000_API_(%s_%s).xlsm", task.KinoID, task.KinoName)
 			kinoName := strings.Replace(task.KinoName, "(", `\(`, -1)
 			kinoName = strings.Replace(kinoName, ")", `\)`, -1)
-			reg1 := regexp.MustCompile(fmt.Sprintf(`レビュー記録表\(内部設計\)_[0-9]{8}_API_\(%s\)_%s.xlsm`, task.KinoID, kinoName))
+			reg1 := regexp.MustCompile(fmt.Sprintf(`レビュー記録表\(内部設計\)_[0-9]{8}_API_\(%s_%s\).xlsm`, task.KinoID, kinoName))
 			// ファイル存在チェック
 			for _, file := range files {
 				if reg1.MatchString(filepath.Base(file)) {
@@ -636,14 +683,14 @@ func checkReviewResult(files []string, task TaskInfo) {
 			}
 
 			if len(path) <= 0 {
-				fmt.Printf("×　%s\n", pattern)
+				fmt.Printf("×　担当者:%s レビュー記録表：%s\n", task.PIC, pattern)
 				return
 			}
 		} else {
-			pattern = fmt.Sprintf("レビュー記録表(内部設計)_20220000_PR_(%s)_%s.xlsm", task.KinoID, task.KinoName)
+			pattern = fmt.Sprintf("レビュー記録表(内部設計)_20220000_PR_(%s_%s).xlsm", task.KinoID, task.KinoName)
 			kinoName := strings.Replace(task.KinoName, "(", `\(`, -1)
 			kinoName = strings.Replace(kinoName, ")", `\)`, -1)
-			reg1 := regexp.MustCompile(fmt.Sprintf(`レビュー記録表\(内部設計\)_[0-9]{8}_PR_\(%s\)_%s.xlsm`, task.KinoID, kinoName))
+			reg1 := regexp.MustCompile(fmt.Sprintf(`レビュー記録表\(内部設計\)_[0-9]{8}_PR_\(%s_%s\).xlsm`, task.KinoID, kinoName))
 			// ファイル存在チェック
 			for _, file := range files {
 				if reg1.MatchString(filepath.Base(file)) {
@@ -653,14 +700,14 @@ func checkReviewResult(files []string, task TaskInfo) {
 			}
 
 			if len(path) <= 0 {
-				fmt.Printf("×　%s\n", pattern)
+				fmt.Printf("×　担当者:%s レビュー記録表：%s\n", task.PIC, pattern)
 				return
 			}
 
-			pattern = fmt.Sprintf("レビュー記録表(内部設計)_20220000_AP_(%s)_%s.xlsm", task.KinoID, task.KinoName)
+			pattern = fmt.Sprintf("レビュー記録表(内部設計)_20220000_AP_(%s_%s).xlsm", task.KinoID, task.KinoName)
 			kinoName = strings.Replace(task.KinoName, "(", `\(`, -1)
 			kinoName = strings.Replace(kinoName, ")", `\)`, -1)
-			reg1 = regexp.MustCompile(fmt.Sprintf(`レビュー記録表\(内部設計\)_[0-9]{8}_AP_\(%s\)_%s.xlsm`, task.KinoID, kinoName))
+			reg1 = regexp.MustCompile(fmt.Sprintf(`レビュー記録表\(内部設計\)_[0-9]{8}_AP_\(%s_%s\).xlsm`, task.KinoID, kinoName))
 			// ファイル存在チェック
 			for _, file := range files {
 				if reg1.MatchString(filepath.Base(file)) {
@@ -670,7 +717,7 @@ func checkReviewResult(files []string, task TaskInfo) {
 			}
 
 			if len(path) <= 0 {
-				fmt.Printf("×　%s\n", pattern)
+				fmt.Printf("×　担当者:%s レビュー記録表：%s\n", task.PIC, pattern)
 				return
 			}
 		}
@@ -679,7 +726,6 @@ func checkReviewResult(files []string, task TaskInfo) {
 	if len(path) <= 0 {
 		return
 	}
-
 
 	f, err := excelize.OpenFile(path)
     if err != nil {
@@ -712,7 +758,7 @@ func getAllFiles(pathname string) ([]string, error) {
 	for _, fi := range fis {
 		fullname := pathname + "/" + fi.Name()
 		if fi.IsDir() {
-			if fi.Name() != "bak" {
+			if fi.Name() != "bak" && fi.Name() != "00_PR・AP・単体詳細レビューフォーマット" {
 				temp, err := getAllFiles(fullname)
 				if err != nil {
 					fmt.Printf("read directory failed. pathname=%v, err=%v", pathname, err)
@@ -729,4 +775,22 @@ func getAllFiles(pathname string) ([]string, error) {
 		}
 	}
 	return result, nil
+}
+
+// oldpattern:レビュー記録表(内部設計)_20220607_AP_(SRM-ASS-TR22)_ゴンドラ選択ポップアップ.xlsm
+// newpattern:レビュー記録表(内部設計)_yyyymmdd_AP_(SRM-ACC-HP30_雑誌返品入力).xlsm
+func renameFile(filename string) {
+	regex := regexp.MustCompile(`(.*)_\(([A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{4})\)_(.*).xlsm`)
+	s := regex.ReplaceAllString(filename, "${1}_(${2}_${3}).xlsm")
+	//fmt.Printf("xxxx %s %s \n", filename, s)
+	err := os.Rename(filename,  s)
+	if err != nil {
+		fmt.Printf(`Renameに失敗: %s\n`, filename)
+	}
+}
+
+// 文字列が数値かを判断する
+func isNum(s string) bool {
+	_, err := strconv.ParseFloat(s, 64)
+	return err == nil
 }
